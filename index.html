@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Car Sales Forecast</title>
+</head>
+<body>
+    <h1>Car Sales Forecast</h1>
+    <p>Enter the car sales for the previous 6 months (oldest to newest):</p>
+
+    <form id="predictionForm">
+        <div id="inputs"></div>
+        <button type="submit">Predict Next Month</button>
+    </form>
+
+    <h2 id="result"></h2>
+
+    <script>
+        const container = document.getElementById("inputs");
+
+        for (let i = 1; i <= 6; i++) {
+            container.innerHTML += `
+                <p>
+                    <label>Month ${i}:</label>
+                    <input type="number" id="month${i}"
+                           min="0" step="any" required>
+                </p>
+            `;
+        }
+
+        document.getElementById("predictionForm")
+            .addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                const sales = [];
+
+                for (let i = 1; i <= 6; i++) {
+                    sales.push(
+                        Number(document.getElementById(`month${i}`).value)
+                    );
+                }
+
+                // Reverse to match lag_1, lag_2, ..., lag_6
+                sales.reverse();
+
+                const result = document.getElementById("result");
+                result.textContent = "Predicting...";
+
+                try {
+                    const response = await fetch("/predict", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({ sales: sales })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Prediction request failed.");
+                    }
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    result.textContent =
+                        "Predicted Next Month Sales: " +
+                        data.prediction.toFixed(2);
+
+                } catch (error) {
+                    result.textContent = "Error: " + error.message;
+                }
+            });
+    </script>
+</body>
+</html>
